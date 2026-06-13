@@ -1,0 +1,17 @@
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Local AI / IBM Granite via Ollama + LangChain
+AI_ENABLED=true
+AI_ENGINE=granite_ollama
+AI_PROVIDER=IBM Granite Local + CreatorCareer Fallback Engine
+
+OLLAMA_ENABLED=true
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=granite3.3:2b
+
+# watsonx is future-ready only for this demo
+WATSONX_ENABLED=false
+
+

@@ -1,0 +1,35 @@
+# Node
+frontend/node_modules
+frontend/.next
+frontend/out
+
+# Environment files
+frontend/.env.local
+backend/.env
+
+# Python
+backend/venv
+backend/__pycache__
+backend/.pytest_cache
+*.pyc
+
+# Reports generated later
+backend/reports/*.pdf
+
+# OS files
+.DS_Store
+Thumbs.db
+
+
+# Backend secrets and generated files
+backend/.env
+backend/venv/
+backend/__pycache__/
+backend/reports/
+backend/**/*.pyc
+
+# Frontend generated files
+frontend/.env.local
+frontend/.next/
+frontend/node_modules/
+

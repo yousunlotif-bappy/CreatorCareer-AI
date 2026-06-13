@@ -1,0 +1,129 @@
+{
+  "personal finance": {
+    "demand_level": "High",
+    "competition_level": "High",
+    "recommended_products": [
+      "Budget planner",
+      "Savings tracker",
+      "Finance template"
+    ],
+    "digital_product_ideas": [
+      "Budgeting template",
+      "Debt payoff planner",
+      "Savings challenge workbook"
+    ],
+    "affiliate_product_ideas": [
+      "Budgeting apps",
+      "Finance books",
+      "Credit monitoring tools"
+    ],
+    "dropshipping_product_ideas": [
+      "Cash envelope wallet",
+      "Budget binder",
+      "Desk planner"
+    ],
+    "best_platforms": [
+      "TikTok",
+      "YouTube Shorts",
+      "Instagram Reels"
+    ],
+    "risk_level": "Medium",
+    "opportunity_score": 84
+  },
+  "home fitness": {
+    "demand_level": "High",
+    "competition_level": "Medium",
+    "recommended_products": [
+      "Resistance bands",
+      "Workout planner",
+      "Meal prep guide"
+    ],
+    "digital_product_ideas": [
+      "Home workout plan",
+      "Fitness tracker sheet",
+      "Meal planner"
+    ],
+    "affiliate_product_ideas": [
+      "Fitness apps",
+      "Workout gear",
+      "Meal planning apps"
+    ],
+    "dropshipping_product_ideas": [
+      "Yoga mat",
+      "Foam roller",
+      "Water bottle"
+    ],
+    "best_platforms": [
+      "Instagram Reels",
+      "TikTok",
+      "YouTube Shorts"
+    ],
+    "risk_level": "Medium",
+    "opportunity_score": 81
+  },
+  "creator education": {
+    "demand_level": "High",
+    "competition_level": "Medium",
+    "recommended_products": [
+      "Creator toolkit",
+      "Content calendar",
+      "AI prompt pack"
+    ],
+    "digital_product_ideas": [
+      "Content calendar template",
+      "Creator business checklist",
+      "Short-form video script pack"
+    ],
+    "affiliate_product_ideas": [
+      "AI writing tools",
+      "Video editing software",
+      "Email marketing platforms"
+    ],
+    "dropshipping_product_ideas": [
+      "Phone tripod",
+      "Microphone",
+      "Portable ring light"
+    ],
+    "best_platforms": [
+      "YouTube Shorts",
+      "TikTok",
+      "LinkedIn",
+      "Instagram Reels"
+    ],
+    "risk_level": "Low",
+    "opportunity_score": 87
+  },
+  "beauty skincare": {
+    "demand_level": "High",
+    "competition_level": "High",
+    "recommended_products": [
+      "Skincare guide",
+      "Routine tracker",
+      "Beauty organizer"
+    ],
+    "digital_product_ideas": [
+      "Skincare routine planner",
+      "Ingredient guide",
+      "Beauty content calendar"
+    ],
+    "affiliate_product_ideas": [
+      "Skincare products",
+      "Beauty tools",
+      "Makeup organizers"
+    ],
+    "dropshipping_product_ideas": [
+      "Beauty mirror",
+      "Travel cosmetic bag",
+      "Facial roller"
+    ],
+    "best_platforms": [
+      "Instagram Reels",
+      "TikTok",
+      "Pinterest"
+    ],
+    "risk_level": "Medium",
+    "opportunity_score": 79
+  }
+}
+
+

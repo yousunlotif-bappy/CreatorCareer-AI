@@ -740,6 +740,37 @@ to:
 Structured creator entrepreneurship
 ```
 
+## AI Approach and IBM Granite Explanation
+
+CreatorCareer AI uses AI as a core functional component of the product workflow. The system is designed around creator profile analysis, content package generation, market opportunity analysis, product validation, ethical monetization checking, 7-agent business planning, and PDF business report generation.
+
+### Development AI Setup
+
+During local development and testing, CreatorCareer AI uses IBM Granite through Ollama:
+
+- Local model: `granite3.3:2b`
+- Local runtime: Ollama
+- AI service layer: FastAPI backend
+- AI purpose: generate structured creator insights, content packages, analysis summaries, roadmap suggestions, ethical checks, and business recommendations
+
+### Live Deployment AI Setup
+
+The deployed Render backend uses an explainable fallback AI workflow when Ollama is not available in the production environment. This is intentional for deployment stability because Render does not run the local Ollama model server by default.
+
+The live MVP therefore demonstrates:
+
+- AI-ready backend architecture
+- Local IBM Granite/Ollama development support
+- Explainable fallback outputs for stable deployment
+- Structured scoring and agent logic
+- Future-ready watsonx integration path
+
+### Future watsonx Integration
+
+The backend is designed so the local/fallback AI layer can later be upgraded to IBM watsonx or IBM Granite cloud deployment without changing the core product workflow.
+
+
+
 ---
 
 ## Future Scope

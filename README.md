@@ -786,7 +786,7 @@ Contest-ready MVP with creator-business workflow, AI-ready backend, database sto
 
 ## Author
 
-**Rafik Hossain**  
+**Yousun Lotif**  
 Project: CreatorCareer AI  
 GitHub: https://github.com/yousunlotif-bappy/CreatorCareer-AI
 

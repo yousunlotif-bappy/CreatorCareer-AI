@@ -1,8 +1,14 @@
 from fastapi import APIRouter
 
 from models.schemas import ProductValidationRequest
-from routes.utils import attach_database_result, clean_optional_uuid, save_record_safely
+from routes.utils import (
+    attach_database_result,
+    clean_optional_uuid,
+    get_database_proof_values,
+    save_record_safely,
+)
 from services.ai_service import generate_local_ai_response
+from services.proof import add_proof_fields
 
 
 router = APIRouter(prefix="/product", tags=["Product Validation"])
@@ -31,13 +37,28 @@ def calculate_product_validation_scores(request: ProductValidationRequest) -> di
     if any(word in product for word in niche.split() if len(word) > 3):
         audience_fit += 5
 
-    if any(item in product for item in ["template", "planner", "guide", "tracker", "workbook"]):
+    if any(
+        item in product
+        for item in ["template", "planner", "guide", "tracker", "workbook"]
+    ):
         audience_fit += 4
 
     if any(item in product for item in ["course", "toolkit", "membership"]):
         audience_fit += 3
 
-    if any(item in niche for item in ["finance", "fitness", "beauty", "creator", "ai", "productivity", "skincare", "business"]):
+    if any(
+        item in niche
+        for item in [
+            "finance",
+            "fitness",
+            "beauty",
+            "creator",
+            "ai",
+            "productivity",
+            "skincare",
+            "business",
+        ]
+    ):
         market_demand += 5
 
     if "digital" in business_model or "affiliate" in business_model:
@@ -46,7 +67,9 @@ def calculate_product_validation_scores(request: ProductValidationRequest) -> di
     if "template" in product_type or "course" in product_type:
         market_demand += 1
 
-    if "low" in budget and any(item in product_type for item in ["digital", "template", "guide"]):
+    if "low" in budget and any(
+        item in product_type for item in ["digital", "template", "guide"]
+    ):
         competition += 3
 
     if "dropshipping" in business_model:
@@ -55,13 +78,22 @@ def calculate_product_validation_scores(request: ProductValidationRequest) -> di
     if "high" in budget:
         competition += 1
 
-    if any(item in platform for item in ["tiktok", "instagram", "youtube", "shorts", "reels"]):
+    if any(
+        item in platform
+        for item in ["tiktok", "instagram", "youtube", "shorts", "reels"]
+    ):
         content_promotion_fit += 4
 
-    if any(item in product for item in ["planner", "template", "guide", "toolkit", "checklist"]):
+    if any(
+        item in product
+        for item in ["planner", "template", "guide", "toolkit", "checklist"]
+    ):
         content_promotion_fit += 4
 
-    if any(item in promotion_style for item in ["educational", "short-form", "tutorial", "story"]):
+    if any(
+        item in promotion_style
+        for item in ["educational", "short-form", "tutorial", "story"]
+    ):
         content_promotion_fit += 2
 
     if "digital" in business_model:
@@ -76,7 +108,10 @@ def calculate_product_validation_scores(request: ProductValidationRequest) -> di
     if "low" in budget:
         ease_of_starting += 2
 
-    if any(item in product_type for item in ["digital", "template", "guide", "workbook"]):
+    if any(
+        item in product_type
+        for item in ["digital", "template", "guide", "workbook"]
+    ):
         ease_of_starting += 2
 
     if "dropshipping" in business_model:
@@ -89,7 +124,14 @@ def calculate_product_validation_scores(request: ProductValidationRequest) -> di
     profit_potential = min(profit_potential, 10)
     ease_of_starting = max(0, min(ease_of_starting, 10))
 
-    total = audience_fit + market_demand + competition + content_promotion_fit + profit_potential + ease_of_starting
+    total = (
+        audience_fit
+        + market_demand
+        + competition
+        + content_promotion_fit
+        + profit_potential
+        + ease_of_starting
+    )
 
     return {
         "audience_fit_score": audience_fit,
@@ -122,7 +164,8 @@ def get_validation_status(score: int) -> str:
 @router.post("/validate")
 def validate_product(request: ProductValidationRequest):
     """
-    Validate a product idea, add local AI reasoning, and save the result.
+    Validate a product idea, add local AI reasoning, save the result,
+    and return proof fields for the frontend AiProofCard.
     """
 
     scores = calculate_product_validation_scores(request)
@@ -130,13 +173,24 @@ def validate_product(request: ProductValidationRequest):
     status = get_validation_status(total_score)
 
     if total_score >= 85:
-        recommendation = "This product idea has strong validation potential. Start with a small MVP and test it through short-form content."
+        recommendation = (
+            "This product idea has strong validation potential. Start with a small MVP "
+            "and test it through short-form content."
+        )
     elif total_score >= 70:
-        recommendation = "This product idea looks promising, but it should be validated first using polls, comments, waitlists, and content tests."
+        recommendation = (
+            "This product idea looks promising, but it should be validated first using "
+            "polls, comments, waitlists, and content tests."
+        )
     elif total_score >= 55:
-        recommendation = "This idea may work, but the positioning needs improvement before testing."
+        recommendation = (
+            "This idea may work, but the positioning needs improvement before testing."
+        )
     else:
-        recommendation = "This idea is currently risky. Improve audience fit, simplify the offer, or choose a product that fits your niche better."
+        recommendation = (
+            "This idea is currently risky. Improve audience fit, simplify the offer, "
+            "or choose a product that fits your niche better."
+        )
 
     strengths = [
         "Product can be tested through content before major spending.",
@@ -172,25 +226,27 @@ def validate_product(request: ProductValidationRequest):
             f"Create 5 short-form videos about the problem behind '{request.product_name}', "
             "then measure saves, comments, clicks, and direct messages to validate demand."
         ),
-        "data_note": "This MVP score uses rule-based validation logic and can later connect to live APIs.",
+        "data_note": (
+            "This MVP score uses rule-based validation logic and can later connect to live APIs."
+        ),
     }
 
-    result.update(
-        generate_local_ai_response(
-            module_name="product",
-            payload={
-                "product_name": request.product_name,
-                "niche": request.niche,
-                "audience": request.audience,
-                "region": request.region,
-                "platform": request.platform,
-                "business_model": request.business_model,
-                "budget": request.budget,
-                "product_type": request.product_type,
-                "promotion_style": request.promotion_style,
-            },
-        )
+    ai_result = generate_local_ai_response(
+        module_name="product",
+        payload={
+            "product_name": request.product_name,
+            "niche": request.niche,
+            "audience": request.audience,
+            "region": request.region,
+            "platform": request.platform,
+            "business_model": request.business_model,
+            "budget": request.budget,
+            "product_type": request.product_type,
+            "promotion_style": request.promotion_style,
+        },
     )
+
+    result.update(ai_result)
 
     database_payload = {
         "creator_id": clean_optional_uuid(request.creator_id),
@@ -221,7 +277,15 @@ def validate_product(request: ProductValidationRequest):
 
     db_result = save_record_safely("product_scores", database_payload)
 
-    return attach_database_result(result, db_result)
+    response_payload = attach_database_result(result, db_result)
+    proof_values = get_database_proof_values(db_result)
+
+    return add_proof_fields(
+        payload=response_payload,
+        database_saved=proof_values["database_saved"],
+        database_record_id=proof_values["database_record_id"],
+        granite_used=True,
+    )
 
 
 

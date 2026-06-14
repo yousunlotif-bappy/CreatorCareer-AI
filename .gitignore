@@ -33,3 +33,33 @@ frontend/.env.local
 frontend/.next/
 frontend/node_modules/
 
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+frontend/.env
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/.env
+backend/env/
+
+# Generated reports
+backend/generated_reports/
+backend/reports/
+*.pdf
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+

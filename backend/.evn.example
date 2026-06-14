@@ -15,3 +15,10 @@ OLLAMA_MODEL=granite3.3:2b
 WATSONX_ENABLED=false
 
 
+FRONTEND_URL=http://localhost:3000
+BACKEND_PUBLIC_URL=http://localhost:8000
+
+
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+
+

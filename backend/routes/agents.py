@@ -1,8 +1,11 @@
+from typing import Any
+
 from fastapi import APIRouter
 
 from models.schemas import SevenAgentRequest
 from routes.utils import attach_database_result, clean_optional_uuid, save_record_safely
 from services.ai_service import generate_local_ai_response
+from services.proof import add_proof_fields
 
 
 router = APIRouter(prefix="/agents", tags=["7-Agent Dashboard"])
@@ -22,8 +25,16 @@ def get_agent_status(score: int) -> str:
     return "Needs Improvement"
 
 
-def build_agent_result(agent_name: str, score: int, reason: str, recommendation: str, next_action: str, extra_output: dict | None = None) -> dict:
+def build_agent_result(
+    agent_name: str,
+    score: int,
+    reason: str,
+    recommendation: str,
+    next_action: str,
+    extra_output: dict | None = None,
+) -> dict:
     safe_score = clamp_score(score)
+
     result = {
         "agent_name": agent_name,
         "score": safe_score,
@@ -32,13 +43,99 @@ def build_agent_result(agent_name: str, score: int, reason: str, recommendation:
         "recommendation": recommendation,
         "next_action": next_action,
     }
+
     if extra_output:
         result.update(extra_output)
+
     return result
+
+
+def extract_database_record_id(db_result: Any) -> str:
+    """
+    Safely extract database record id from common Supabase response shapes.
+    This prevents undefined record_id errors.
+    """
+
+    try:
+        if not db_result:
+            return ""
+
+        if isinstance(db_result, dict):
+            if db_result.get("id"):
+                return str(db_result["id"])
+
+            data = db_result.get("data")
+
+            if isinstance(data, list) and len(data) > 0:
+                first_item = data[0]
+
+                if isinstance(first_item, dict) and first_item.get("id"):
+                    return str(first_item["id"])
+
+            if isinstance(data, dict) and data.get("id"):
+                return str(data["id"])
+
+            record = db_result.get("record")
+
+            if isinstance(record, dict) and record.get("id"):
+                return str(record["id"])
+
+        data = getattr(db_result, "data", None)
+
+        if isinstance(data, list) and len(data) > 0:
+            first_item = data[0]
+
+            if isinstance(first_item, dict) and first_item.get("id"):
+                return str(first_item["id"])
+
+        if isinstance(data, dict) and data.get("id"):
+            return str(data["id"])
+
+        record_id = getattr(db_result, "id", None)
+
+        if record_id:
+            return str(record_id)
+
+        return ""
+    except Exception:
+        return ""
+
+
+def check_database_saved(db_result: Any, database_record_id: str) -> bool:
+    """
+    Check whether database save was successful.
+    """
+
+    if database_record_id:
+        return True
+
+    if not db_result:
+        return False
+
+    if isinstance(db_result, dict):
+        if db_result.get("success") is True:
+            return True
+
+        if db_result.get("saved") is True:
+            return True
+
+        if db_result.get("error"):
+            return False
+
+        if db_result.get("data"):
+            return True
+
+    data = getattr(db_result, "data", None)
+
+    if data:
+        return True
+
+    return False
 
 
 def business_readiness_agent(request: SevenAgentRequest) -> dict:
     score = 45
+
     if request.followers >= 1000:
         score += 10
     if request.followers >= 10000:
@@ -65,11 +162,17 @@ def niche_product_fit_agent(request: SevenAgentRequest) -> dict:
     score = 60
     niche = request.creator_niche.lower()
     product = request.product_idea.lower()
+
     for word in niche.split():
         if len(word) > 3 and word in product:
             score += 12
-    if any(item in product for item in ["template", "planner", "guide", "toolkit", "course"]):
+
+    if any(
+        item in product
+        for item in ["template", "planner", "guide", "toolkit", "course"]
+    ):
         score += 12
+
     if "digital" in request.business_model.lower():
         score += 8
 
@@ -89,12 +192,30 @@ def audience_market_match_agent(request: SevenAgentRequest) -> dict:
     audience = request.audience.lower()
     region = request.region.lower()
 
-    if any(item in niche for item in ["finance", "fitness", "beauty", "creator", "ai", "productivity", "marketing", "business"]):
+    if any(
+        item in niche
+        for item in [
+            "finance",
+            "fitness",
+            "beauty",
+            "creator",
+            "ai",
+            "productivity",
+            "marketing",
+            "business",
+        ]
+    ):
         score += 15
-    if any(item in product for item in ["planner", "template", "tool", "guide", "kit", "course"]):
+
+    if any(
+        item in product
+        for item in ["planner", "template", "tool", "guide", "kit", "course"]
+    ):
         score += 10
+
     if "usa" in audience or "united states" in region:
         score += 8
+
     if len(request.platforms) >= 3:
         score += 5
 
@@ -133,15 +254,39 @@ def ethical_monetization_agent(request: SevenAgentRequest) -> dict:
     score = 100
     issues = []
 
-    has_disclosure = any(keyword in text for keyword in ["affiliate", "commission", "sponsored", "paid partnership", "ad"])
+    has_disclosure = any(
+        keyword in text
+        for keyword in [
+            "affiliate",
+            "commission",
+            "sponsored",
+            "paid partnership",
+            "ad",
+        ]
+    )
 
     if "affiliate" in business_model and not has_disclosure:
         score -= 20
         issues.append("Affiliate or sponsorship disclosure may be missing.")
-    if any(phrase in text for phrase in ["guaranteed", "make you rich", "instant results", "100%", "no risk", "rich fast"]):
+
+    if any(
+        phrase in text
+        for phrase in [
+            "guaranteed",
+            "make you rich",
+            "instant results",
+            "100%",
+            "no risk",
+            "rich fast",
+        ]
+    ):
         score -= 25
         issues.append("Promotion copy may contain overpromising or risky claim language.")
-    if any(phrase in text for phrase in ["buy now or regret", "last chance", "only today", "act now"]):
+
+    if any(
+        phrase in text
+        for phrase in ["buy now or regret", "last chance", "only today", "act now"]
+    ):
         score -= 10
         issues.append("Promotion copy may contain pressure-based urgency.")
 
@@ -154,7 +299,13 @@ def ethical_monetization_agent(request: SevenAgentRequest) -> dict:
         "This agent checks whether promotional content is transparent and avoids overpromising.",
         "Use clear affiliate disclosure, avoid guaranteed results, and explain limitations honestly.",
         "Rewrite the promotion copy using safer, clearer claims.",
-        {"issues_found": issues, "recommended_disclosure": "This content may contain affiliate links. If you buy through my link, I may earn a small commission at no extra cost to you."},
+        {
+            "issues_found": issues,
+            "recommended_disclosure": (
+                "This content may contain affiliate links. If you buy through my link, "
+                "I may earn a small commission at no extra cost to you."
+            ),
+        },
     )
 
 
@@ -164,6 +315,7 @@ def product_validation_checklist_agent(request: SevenAgentRequest) -> dict:
 
     if "template" in product or "planner" in product:
         score += 8
+
     if "digital" in request.business_model.lower():
         score += 4
 
@@ -210,7 +362,8 @@ def six_month_roadmap_agent(request: SevenAgentRequest) -> dict:
 @router.post("/run")
 def run_seven_agent_dashboard(request: SevenAgentRequest):
     """
-    Run all seven creator business agents, add local AI reasoning, and save the unified report.
+    Run all seven creator business agents, add local AI reasoning,
+    save the unified report, and return proof fields for the frontend.
     """
 
     agent_results = [
@@ -260,23 +413,23 @@ def run_seven_agent_dashboard(request: SevenAgentRequest):
         "data_note": "MVP uses rule-based agent logic and sample market signals.",
     }
 
-    result.update(
-        generate_local_ai_response(
-            module_name="agents",
-            payload={
-                "creator_niche": request.creator_niche,
-                "audience": request.audience,
-                "region": request.region,
-                "platforms": request.platforms,
-                "followers": request.followers,
-                "product_idea": request.product_idea,
-                "business_model": request.business_model,
-                "income_goal": request.income_goal,
-                "available_time": request.available_time,
-                "promotion_copy": request.promotion_copy,
-            },
-        )
+    ai_result = generate_local_ai_response(
+        module_name="agents",
+        payload={
+            "creator_niche": request.creator_niche,
+            "audience": request.audience,
+            "region": request.region,
+            "platforms": request.platforms,
+            "followers": request.followers,
+            "product_idea": request.product_idea,
+            "business_model": request.business_model,
+            "income_goal": request.income_goal,
+            "available_time": request.available_time,
+            "promotion_copy": request.promotion_copy,
+        },
     )
+
+    result.update(ai_result)
 
     database_payload = {
         "creator_id": clean_optional_uuid(request.creator_id),
@@ -290,7 +443,9 @@ def run_seven_agent_dashboard(request: SevenAgentRequest):
         "income_goal": request.income_goal,
         "available_time": request.available_time,
         "promotion_copy": request.promotion_copy,
-        "overall_business_opportunity_score": result["overall_business_opportunity_score"],
+        "overall_business_opportunity_score": result[
+            "overall_business_opportunity_score"
+        ],
         "executive_summary": result["executive_summary"],
         "agent_results": result["agent_results"],
         "next_7_days_plan": result["next_7_days_plan"],
@@ -300,8 +455,15 @@ def run_seven_agent_dashboard(request: SevenAgentRequest):
 
     db_result = save_record_safely("seven_agent_reports", database_payload)
 
-    return attach_database_result(result, db_result)
+    database_record_id = extract_database_record_id(db_result)
+    database_saved = check_database_saved(db_result, database_record_id)
 
+    response_payload = attach_database_result(result, db_result)
 
-
+    return add_proof_fields(
+        payload=response_payload,
+        database_saved=database_saved,
+        database_record_id=database_record_id,
+        granite_used=True,
+    )
 

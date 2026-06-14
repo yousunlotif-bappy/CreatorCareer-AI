@@ -1,10 +1,96 @@
+from typing import Any
+
 from fastapi import APIRouter
 
 from models.schemas import CreatorProfileRequest
 from routes.utils import attach_database_result, save_record_safely
+from services.proof import add_proof_fields
 
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
+
+
+def extract_database_record_id(db_result: Any) -> str:
+    """
+    Safely extract database record id from common Supabase response shapes.
+    """
+
+    try:
+        if not db_result:
+            return ""
+
+        if isinstance(db_result, dict):
+            if db_result.get("id"):
+                return str(db_result["id"])
+
+            data = db_result.get("data")
+
+            if isinstance(data, list) and len(data) > 0:
+                first_item = data[0]
+
+                if isinstance(first_item, dict) and first_item.get("id"):
+                    return str(first_item["id"])
+
+            if isinstance(data, dict) and data.get("id"):
+                return str(data["id"])
+
+            record = db_result.get("record")
+
+            if isinstance(record, dict) and record.get("id"):
+                return str(record["id"])
+
+        data = getattr(db_result, "data", None)
+
+        if isinstance(data, list) and len(data) > 0:
+            first_item = data[0]
+
+            if isinstance(first_item, dict) and first_item.get("id"):
+                return str(first_item["id"])
+
+        if isinstance(data, dict) and data.get("id"):
+            return str(data["id"])
+
+        record_id = getattr(db_result, "id", None)
+
+        if record_id:
+            return str(record_id)
+
+        return ""
+
+    except Exception:
+        return ""
+
+
+def check_database_saved(db_result: Any, database_record_id: str) -> bool:
+    """
+    Check whether database save was successful.
+    """
+
+    if database_record_id:
+        return True
+
+    if not db_result:
+        return False
+
+    if isinstance(db_result, dict):
+        if db_result.get("success") is True:
+            return True
+
+        if db_result.get("saved") is True:
+            return True
+
+        if db_result.get("error"):
+            return False
+
+        if db_result.get("data"):
+            return True
+
+    data = getattr(db_result, "data", None)
+
+    if data:
+        return True
+
+    return False
 
 
 def calculate_readiness_score(profile: CreatorProfileRequest) -> int:
@@ -69,7 +155,8 @@ def get_creator_stage(followers: int) -> str:
 @router.post("/analyze")
 def analyze_creator_profile(profile: CreatorProfileRequest):
     """
-    Analyze a creator profile and save it to the creators table when possible.
+    Analyze a creator profile, save it to the creators table,
+    and return proof fields for the frontend AiProofCard.
     """
 
     readiness_score = calculate_readiness_score(profile)
@@ -131,6 +218,17 @@ def analyze_creator_profile(profile: CreatorProfileRequest):
 
     db_result = save_record_safely("creators", database_payload)
 
-    return attach_database_result(result, db_result)
+    database_record_id = extract_database_record_id(db_result)
+    database_saved = check_database_saved(db_result, database_record_id)
+
+    response_payload = attach_database_result(result, db_result)
+
+    return add_proof_fields(
+        payload=response_payload,
+        database_saved=database_saved,
+        database_record_id=database_record_id,
+        granite_used=False,
+    )
+
 
 

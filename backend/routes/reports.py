@@ -5,8 +5,14 @@ from pathlib import Path
 from fastapi import APIRouter
 
 from models.schemas import ReportGenerateRequest
-from routes.utils import attach_database_result, clean_optional_uuid, save_record_safely
+from routes.utils import (
+    attach_database_result,
+    clean_optional_uuid,
+    get_database_proof_values,
+    save_record_safely,
+)
 from services.ai_service import generate_local_ai_response
+from services.proof import add_proof_fields
 from services.report_generator import generate_pdf_report
 
 
@@ -27,7 +33,8 @@ def clean_file_part(value: str) -> str:
 @router.post("/generate")
 def generate_report(request: ReportGenerateRequest):
     """
-    Generate a PDF report, add local AI response metadata, and save report history.
+    Generate a PDF report, add local AI response metadata,
+    save report history, and return correct proof fields.
     """
 
     reports_dir = Path(__file__).resolve().parents[1] / "reports"
@@ -48,21 +55,21 @@ def generate_report(request: ReportGenerateRequest):
         "download_url": download_url,
     }
 
-    result.update(
-        generate_local_ai_response(
-            module_name="report",
-            payload={
-                "creator_name": request.creator_name,
-                "creator_niche": request.creator_niche,
-                "audience": request.audience,
-                "region": request.region,
-                "platforms": request.platforms,
-                "product_idea": request.product_idea,
-                "business_model": request.business_model,
-                "income_goal": request.income_goal,
-            },
-        )
+    ai_result = generate_local_ai_response(
+        module_name="report",
+        payload={
+            "creator_name": request.creator_name,
+            "creator_niche": request.creator_niche,
+            "audience": request.audience,
+            "region": request.region,
+            "platforms": request.platforms,
+            "product_idea": request.product_idea,
+            "business_model": request.business_model,
+            "income_goal": request.income_goal,
+        },
     )
+
+    result.update(ai_result)
 
     database_payload = {
         "creator_id": clean_optional_uuid(request.creator_id),
@@ -81,6 +88,13 @@ def generate_report(request: ReportGenerateRequest):
 
     db_result = save_record_safely("reports", database_payload)
 
-    return attach_database_result(result, db_result)
+    response_payload = attach_database_result(result, db_result)
+    proof_values = get_database_proof_values(db_result)
 
+    return add_proof_fields(
+        payload=response_payload,
+        database_saved=proof_values["database_saved"],
+        database_record_id=proof_values["database_record_id"],
+        granite_used=True,
+    )
 
